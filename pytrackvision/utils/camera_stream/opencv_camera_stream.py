@@ -3,11 +3,11 @@ import cv2
 from .camera_stream import CameraStream
 
 
-class WebCameraStream(CameraStream):
+class OpenCVCameraStream(CameraStream):
     """
     Context manager and iterator for accessing webcam.
 
-    >>> with WebCameraStream() as stream:
+    >>> with OpenCVCameraStream() as stream:
     >>>     for img in stream:
     >>>         ...
 

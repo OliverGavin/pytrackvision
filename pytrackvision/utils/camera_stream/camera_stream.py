@@ -1,9 +1,9 @@
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from threading import Thread
 
 
-class CameraStream:
+class CameraStream(ABC):
     """
     Context manager and iterator for accessing webcam and picam with a consistent interface.
 
@@ -12,8 +12,6 @@ class CameraStream:
     >>>         ...
 
     """
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, camera_num=0, resolution=(320, 240), framerate=30, multi_thread=True):
         """Constructor.
@@ -128,7 +126,7 @@ class CameraStream:
     def _create_camera(self):
         """Create camera resources callback.
         """
-        pass
+        ...
 
     @abstractmethod
     def _read_frame(self):
@@ -140,10 +138,10 @@ class CameraStream:
             Frame from camera in BGR
 
         """
-        pass
+        ...
 
     @abstractmethod
     def _release_camera(self):
         """Release camera resources callback.
         """
-        pass
+        ...
