@@ -8,4 +8,6 @@ setup(name='pytrackvision',
       author_email='oliver@gavin.ie',
       license='MIT',
       packages=['pytrackvision'],
+      test_suite='nose2.collector.collector',
+      tests_require=['nose2'],
       zip_safe=False)
