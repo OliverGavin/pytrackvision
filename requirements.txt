@@ -1,0 +1,6 @@
+numpy==1.13.3
+scipy==1.0.0
+
+# scikit-image==0.13.1
+# matplotlib==2.2.0
+# pygame==1.9.3

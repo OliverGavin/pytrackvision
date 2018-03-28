@@ -36,7 +36,7 @@ def get_camera_stream(*args, **kwargs):
     for fun in camera_funcs:
         try:
             print(fun.__name__)
-            test_kwargs = kwargs
+            test_kwargs = kwargs.copy()
             test_kwargs['multi_thread'] = False
             with fun(*args, **test_kwargs) as stream:
                 img = next(stream)

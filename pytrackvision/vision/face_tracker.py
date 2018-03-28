@@ -37,6 +37,6 @@ class FaceTracker:
             bbox = tuple([int(d) for d in bbox])
 
         if self._found:
-            return [bbox]
+            return bbox
         else:
-            return []
+            return None
