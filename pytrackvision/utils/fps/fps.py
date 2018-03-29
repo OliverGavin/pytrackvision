@@ -16,7 +16,7 @@ class FPS:
         ----------
         frame_buffer_size : int
             The number of frames to use when calculating the frame rate
-        
+
         """
         self._frame_buffer_size = frame_buffer_size
         self._time_buffer = deque(maxlen=self._frame_buffer_size)

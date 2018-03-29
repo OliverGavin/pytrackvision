@@ -21,7 +21,7 @@ def find_contours(mask, min_area=800, max_area=8000):
     numpy.ndarray
         A 3D array of points approximating the contour.
     """
-    _, contours, hier = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     contours = list(filter(lambda cnt: min_area < cv2.contourArea(cnt) < max_area, contours))
     return contours
 
@@ -45,7 +45,7 @@ def find_min_enclosing_circle(contour):
     return center, radius
 
 
-def find_centroid(contours):
+def find_centroid(contour):
     """Find the centroid of a contour using moments.
 
     Parameters
@@ -58,13 +58,13 @@ def find_centroid(contours):
     Tuple[int, int]
         A tuple containing the center point.
     """
-    M = cv2.moments(contours)  # https://en.wikipedia.org/wiki/Image_moment
+    M = cv2.moments(contour)  # https://en.wikipedia.org/wiki/Image_moment
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
     return (cX, cY)
 
 
-def find_convexity_defects(contours):
+def find_convexity_defects(contour):
     """Calculate the convex hull and convexity defects for a contour.
 
     Parameters
@@ -79,8 +79,8 @@ def find_convexity_defects(contours):
         along the convex hull, the farthest/deepest defect
         and the distance of the defect, for each defect.
     """
-    hull = cv2.convexHull(contours, returnPoints=False)
-    defects = cv2.convexityDefects(contours, hull)
+    hull = cv2.convexHull(contour, returnPoints=False)
+    defects = cv2.convexityDefects(contour, hull)
     return defects
 
 
@@ -128,81 +128,51 @@ def nearest_point_distance(point, points):
     return np.min(dist)
 
 
-# def find_max_incircle(contour, centroid, points):
-#     cX, cY = centroid
-#     points = contour[::5][:, 0]
-#     points = np.concatenate((points, points), axis=0)
-#
-#     try:
-#         if len(points) >= 4:
-#
-#             # vor = Voronoi(points)
-#
-#             rect = (0, 0, 320, 240)
-#             div = cv2.Subdiv2D(rect)
-#             # mat = np.zeros(shape=(240, 320, 3))
-#             for p in points:
-#                 div.insert((p[0], p[1]))
-#                 # cv2.circle(mat, (p[0], p[1]), 4, [255, 255, 255], -1)
-#
-#             # points = map(list, zip(*points))
-#             # div.insert([x for x in map(tuple, points)])
-#
-#             # for (vX, vY) in vor.vertices:
-#             #     cv2.circle(mat, (int(vX), int(vY)), 2, [0, 200, 0], 1)
-#
-#             # test = div.getEdgeList()[:, 2:4]
-#             test = np.concatenate(div.getVoronoiFacetList([])[0])
-#             test = test[((0 <= test[:, 0]) & (test[:, 0] <= 320)) & ((0 <= test[:, 1]) & (test[:, 1] <= 240))]
-#
-#             # print(vor.vertices)
-#             # print(test)
-#             # print(len(vor.vertices), len(test))
-#
-#             b = test.ravel().view(np.dtype((np.void, test.dtype.itemsize*test.shape[1])))
-#             _, unique_idx = np.unique(b, return_index=True)
-#
-#             test = test[np.sort(unique_idx)]
-#
-#             # print(test)
-#             # print(len(test))
-#             # print()
-#             #
-#             # for p in test:
-#             #     cv2.circle(mat, (p[0], p[1]), 1, [0, 0, 200], 1)
-#             #
-#             # cv2.imshow('test', mat)
-#             # import pdb; pdb.set_trace()
-#
-#             max_d = 0
-#             max_v = None
-#             for (vX, vY) in test:
-#             # for (vX, vY) in test:
-#                 # cv2.circle(img, (int(vX), int(vY)), 1, [200, 200, 0], 1)
-#                 # _, d, _ = nearest_point_distance((vX, vY), points)
-#                 d = nearest_point_distance((vX, vY), points)
-#                 # also check if starting point is in the circle
-#                 if d > max_d and np.linalg.norm(np.array([vX, vY]) - np.array([cX, cY])) < d:
-#                     max_d = d
-#                     max_v = (vX, vY)
-#
-#             if max_v:
-#                 center, radius = (int(max_v[0]), int(max_v[1])), int(max_d)
-#                 return (center, radius)
-#                 # cv2.circle(img, center, radius, [0, 0, 0], 1)
-#     except Exception as e:
-#         print('Voronoi failed:')
-#         print()
-#         print(centroid)
-#         print()
-#         print(points)
-#         print()
-#         print(e)
-#         print()
-#
-#     return None
+def voronoi_vertices(points):
+    """Finds the vertices of a Vornoi diagram for a point cloud.
 
-def find_max_incircle(contour, centroid, points):
+    A Voronoi diagram is used to partition points by maximising the
+    distance of its vertices from them.
+
+    Parameters
+    ----------
+    points: numpy.ndarray
+        A 2D array of points.
+
+    Returns
+    -------
+    numpy.ndarray
+        A 2D array of points.
+    """
+    # min and max points are used to create only the maximum required matrix size
+    min_x_p = np.min(points[:, 0])
+    min_y_p = np.min(points[:, 1])
+    max_x_p = np.max(points[:, 0])
+    max_y_p = np.max(points[:, 1])
+    rect = (min_x_p, min_y_p, max_x_p + 1, max_y_p + 1)
+    div = cv2.Subdiv2D(rect)
+
+    for p in points:
+        # insert the points into the matrix
+        div.insert((p[0], p[1]))
+
+    # Merge all the vertices from all the facets
+    vertices = np.concatenate(div.getVoronoiFacetList([])[0])
+
+    # Filter out vertices outside the image
+    vertices = vertices[((min_x_p <= vertices[:, 0]) & (vertices[:, 0] <= max_x_p))
+                        &
+                        ((min_y_p <= vertices[:, 1]) & (vertices[:, 1] <= max_y_p))]
+
+    # Filter out duplicate vertices (because adjacent facets share vertices)
+    b = vertices.ravel().view(np.dtype((np.void, vertices.dtype.itemsize*vertices.shape[1])))
+    _, unique_idx = np.unique(b, return_index=True)
+    vertices = vertices[unique_idx]
+
+    return vertices
+
+
+def find_max_incircle(centroid, points):
     """Finds the maximum incircle in a point cloud which contains
     a given centroid.
 
@@ -213,8 +183,6 @@ def find_max_incircle(contour, centroid, points):
 
     Parameters
     ----------
-    contour: numpy.ndarray  # todo remove/move
-        A 3D array of points approximating the contour.
     centroid: Tuple[int, int]
         A tuple containing the centroid point.
     points: numpy.ndarray
@@ -226,32 +194,16 @@ def find_max_incircle(contour, centroid, points):
         A tuple containing the center point and radius.
     """
     cX, cY = centroid
-    points = contour[::5][:, 0]
-    points = np.concatenate((points, points), axis=0)
 
     if len(points) >= 4:
 
-        rect = (0, 0, 320, 240)
-        div = cv2.Subdiv2D(rect)
-
-        for p in points:
-            div.insert((p[0], p[1]))
-
-        facets = np.concatenate(div.getVoronoiFacetList([])[0])
-        vertices = facets[((0 <= facets[:, 0]) & (facets[:, 0] <= 320)) & ((0 <= facets[:, 1]) & (facets[:, 1] <= 240))]
-
-        b = vertices.ravel().view(np.dtype((np.void, vertices.dtype.itemsize*vertices.shape[1])))
-        _, unique_idx = np.unique(b, return_index=True)
-
-        vertices = vertices[unique_idx]
-        # vertices = vertices[np.sort(unique_idx)]
+        vertices = voronoi_vertices(points)
 
         max_d = 0
         max_v = None
         for (vX, vY) in vertices:
-            # cv2.circle(img, (int(vX), int(vY)), 1, [200, 200, 0], 1)
             d = nearest_point_distance((vX, vY), points)
-            # also check if starting point is in the circle
+            # also check if the centroid is in the circle
             if d > max_d and np.linalg.norm(np.array([vX, vY]) - np.array([cX, cY])) < d:
                 max_d = d
                 max_v = (vX, vY)
@@ -259,6 +211,5 @@ def find_max_incircle(contour, centroid, points):
         if max_v:
             center, radius = (int(max_v[0]), int(max_v[1])), int(max_d)
             return (center, radius)
-            # cv2.circle(img, center, radius, [0, 0, 0], 1)
 
     return None
