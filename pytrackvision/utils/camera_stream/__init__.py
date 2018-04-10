@@ -33,6 +33,12 @@ def get_camera_stream(*args, **kwargs):
     """
     camera_funcs = [_get_pi_camera_stream, _get_opencv_camera_stream, _get_pygame_camera_stream]
 
+    src = kwargs.get('src', None)
+    del kwargs['src']
+    if src:
+        from .opencv_video_stream import OpenCVVideoStream
+        return OpenCVVideoStream(src, *args, **kwargs)
+
     for fun in camera_funcs:
         try:
             print(fun.__name__)

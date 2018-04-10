@@ -19,6 +19,8 @@ class OpenCVCameraStream(CameraStream):
         self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
 
     def _read_frame(self):
+        # import time
+        # time.sleep(0.05)
         _, frame = self._camera.read()
         return frame
 
